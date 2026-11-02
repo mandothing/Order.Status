@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MANdoTHING - Order Status</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@800&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    /* สีทั้งหมดอยู่ที่นี่ที่เดียว */
+    :root {
+      --black: #000000;
+      --lime: #c1ff72;
+      --navy: #100074;
+      --green: #00bf63;
+      --grey: #939396;
+      --red: #ff3131;
+    }
+
+    [hidden] { display: none !important; }
+
+    body {
+      margin: 0;
+      padding: 24px 16px;
+      background: #ffffff;
+      font-family: "Prompt", sans-serif;
+      color: #000;
+    }
+
+    /* การ์ดหลัก: หัวสีดำ + ส่วนเนื้อหาสีน้ำเงินเข้มซ้อนด้านล่าง */
+    .card {
+      width: 100%;
+      max-width: 380px;
+      margin: 0 auto;
+      background: var(--black);
+      border-radius: 32px;
+      overflow: hidden;
+    }
+
+    .header {
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      text-align: center;
+      color: #fff;
+      padding: 26px 20px;
+      transition: min-height 0.3s ease;
+    }
+
+    /* หลังค้นหาแล้ว หัวจะหดลง */
+    .card.searched .header { min-height: 0; }
+
+    h1 {
+      margin: 0;
+      font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+      font-weight: 800;
+      font-size: clamp(30px, 9.5vw, 40px);
+      line-height: 1.1;
+      letter-spacing: -0.5px;
+    }
+
+    .sub {
+      margin: 6px 0 0;
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .panel {
+      background: var(--navy);
+      border-radius: 30px 30px 0 0;
+      padding: 28px 28px 32px;
+      color: #fff;
+    }
+
+    #status {
+      margin: 0 0 12px;
+      font-size: 12.5px;
+      font-weight: 600;
+      text-align: center;
+      overflow-wrap: anywhere;
+    }
+    #status:empty { display: none; }
+
+    .phone-line {
+      margin: 0 0 14px;
+      font-size: 17px;
+      font-weight: 500;
+      overflow-wrap: anywhere;
+    }
+
+    /* ช่องกรอกเบอร์ + ปุ่ม */
+    #phone {
+      display: block;
+      width: 100%;
+      padding: 15px 22px;
+      margin: 0 0 12px;
+      border: none;
+      border-radius: 999px;
+      background: #fff;
+      color: #000;
+      font-family: inherit;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    #phone::placeholder {
+      color: var(--grey);
+      font-size: 13px;
+    }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 11px 16px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .search { background: var(--lime); color: #000; }
+    .clear { background: #000; color: var(--lime); }
+
+    /* กล่องไม่พบข้อมูล */
+    .not-found {
+      margin-top: 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 3px solid var(--red);
+      border-radius: 18px;
+      color: #000;
+    }
+
+    .nf-title {
+      margin-bottom: 4px;
+      color: var(--red);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .nf-line {
+      font-size: 11.5px;
+      font-weight: 500;
+      line-height: 1.55;
+    }
+
+    /* ผลการค้นหา */
+    .round + .round {
+      margin-top: 30px;
+      padding-top: 22px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.3);
+    }
+
+    .round-title {
+      margin: 0 0 12px;
+      color: var(--lime);
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .section-title {
+      margin: 18px 0 8px;
+      color: var(--lime);
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    .row {
+      display: flex;
+      gap: 6px;
+      align-items: stretch;
+    }
+
+    /* ป้ายสีเขียวมะนาวแนวตั้ง (Status / Tracking) */
+    .tag {
+      flex: 0 0 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--lime);
+      color: #000;
+      border-radius: 17px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .tag span {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+    }
+
+    .white-card {
+      flex: 1;
+      min-width: 0;
+      padding: 14px 18px;
+      background: #fff;
+      color: #000;
+      border-radius: 18px;
+      overflow-wrap: anywhere;
+    }
+
+    .wc-label { font-size: 14px; font-weight: 500; }
+
+    .wc-value {
+      margin-top: 2px;
+      color: var(--navy);
+      font-size: 15px;
+      font-weight: 600;
+      white-space: pre-line;
+    }
+
+    .items-label {
+      margin-bottom: 4px;
+      color: var(--grey);
+      font-size: 14px;
+    }
+
+    .items-list {
+      margin: 0;
+      padding-left: 20px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    /* การชำระเงิน */
+    .pay-full {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 16px;
+      background: var(--green);
+      color: #fff;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 600;
+    }
+
+    .pay-deposit {
+      border-radius: 16px;
+      overflow: hidden;
+      font-size: 12.5px;
+      font-weight: 600;
+    }
+
+    .pay-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 16px;
+    }
+
+    .pay-top { background: var(--lime); color: #000; }
+    .pay-bottom { background: #000; color: #fff; }
+
+    .pay-empty { font-size: 12.5px; }
+
+    /* Tracking */
+    .track-carrier { font-size: 15px; font-weight: 600; }
+
+    .track-line {
+      margin-top: 2px;
+      color: var(--grey);
+      font-size: 12px;
+    }
+
+    .footnote {
+      margin-top: 20px;
+      font-size: 11.5px;
+      font-weight: 500;
+      line-height: 1.6;
+    }
+
+    .reset-wrap {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .reset-wrap button { width: 50%; }
+  </style>
+</head>
+
+<body>
+  <div class="card" id="card">
+    <div class="header">
+      <h1>MANdoTHING</h1>
+      <p class="sub">Order Status</p>
+    </div>
+
+    <div class="panel">
+      <div id="status">กำลังเชื่อมต่อ LINE...</div>
+
+      <div id="phoneLine" class="phone-line" hidden></div>
+
+      <div id="searchForm">
+        <input id="phone" placeholder="Phone" inputmode="tel" autocomplete="tel">
+        <div class="btn-row">
+          <button id="searchBtn" class="search" disabled>Search</button>
+          <button id="clearBtn" class="clear">Clear</button>
+        </div>
+      </div>
+
+      <div id="notFound" class="not-found" hidden>
+        <div class="nf-title">ไม่พบข้อมูล</div>
+        <div class="nf-line">1.กรุณาเช็คเบอร์โทรอีกครั้ง</div>
+        <div class="nf-line">2.สถานะยังไม่อัปเดต รอเช็คหลังจากลูกค้าแจ้งโอนภายใน 24 ชม.</div>
+        <div class="nf-line">3.ติดต่อร้านทางไลน์</div>
+      </div>
+
+      <div id="results"></div>
+    </div>
+  </div>
+
+  <script>
+    const LIFF_ID = "2012331598-lXuw1mGk";
+    const API_URL = "https://script.google.com/macros/s/AKfycbyQe5-APa-bzDRmlFWNgEYBblynKyykcdCw27bhcKU8aK2mey8naZjBigyI2vFNzsoy/exec"; // เช่น https://script.google.com/macros/s/xxxx/exec
+
+    let idToken = "";
+    let busy = false;
+
+    const card = document.getElementById("card");
+    const statusBox = document.getElementById("status");
+    const phoneInput = document.getElementById("phone");
+    const phoneLine = document.getElementById("phoneLine");
+    const searchForm = document.getElementById("searchForm");
+    const searchBtn = document.getElementById("searchBtn");
+    const notFound = document.getElementById("notFound");
+    const results = document.getElementById("results");
+
+    function setStatus(message) {
+      statusBox.textContent = message;
+    }
+
+    // ใช้ text/plain เพื่อไม่ให้เกิด CORS preflight (GAS ไม่รองรับ OPTIONS)
+    async function callApi(payload) {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || "เกิดข้อผิดพลาด");
+      return json.data;
+    }
+
+    function makeEl(tag, cls, text) {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text) e.textContent = text;
+      return e;
+    }
+
+    function toNumber(s) {
+      return parseFloat(String(s || "").replace(/[^\d.]/g, "")) || 0;
+    }
+
+    function baht(v) {
+      if (!v) return "-";
+      return /บาท/.test(v) ? v : v + " บาท";
+    }
+
+    // ===== วาดผลการค้นหา (ใช้ textContent ทั้งหมด เพื่อความปลอดภัย) =====
+
+    function renderPayment(p) {
+      const wrap = makeEl("div", "");
+      const type = p.type || "";
+      const hasAny = type || p.paid || p.remaining;
+
+      if (!hasAny) {
+        wrap.appendChild(makeEl("div", "pay-empty", "ยังไม่มีข้อมูลการชำระเงิน"));
+        return wrap;
+      }
+
+      const isDeposit =
+        /มัดจำ/.test(type) || (!/เต็ม/.test(type) && toNumber(p.remaining) > 0);
+
+      if (isDeposit) {
+        const box = makeEl("div", "pay-deposit");
+
+        const top = makeEl("div", "pay-row pay-top");
+        top.appendChild(makeEl("span", "", "มัดจำ"));
+        top.appendChild(makeEl("span", "", baht(p.paid)));
+
+        const bottom = makeEl("div", "pay-row pay-bottom");
+        bottom.appendChild(makeEl("span", "", "คงเหลือ"));
+        bottom.appendChild(makeEl("span", "", baht(p.remaining)));
+
+        box.appendChild(top);
+        box.appendChild(bottom);
+        wrap.appendChild(box);
+      } else {
+        const bar = makeEl("div", "pay-full");
+        bar.appendChild(makeEl("span", "", "ชำระเต็มจำนวน"));
+        bar.appendChild(makeEl("span", "", baht(p.paid)));
+        wrap.appendChild(bar);
+      }
+
+      return wrap;
+    }
+
+    function renderRound(o) {
+      const wrap = makeEl("div", "round");
+
+      // หัวข้อรอบพรี
+      let round = o.round || "";
+      if (round && !/^รอบ/.test(round)) round = "รอบพรี " + round;
+      wrap.appendChild(makeEl("h3", "round-title", round || "ออเดอร์"));
+
+      // Status
+      const sRow = makeEl("div", "row");
+      const sTag = makeEl("div", "tag");
+      sTag.appendChild(makeEl("span", "", "Status"));
+      const sCard = makeEl("div", "white-card");
+      sCard.appendChild(makeEl("div", "wc-label", "สถานะ"));
+      sCard.appendChild(makeEl("div", "wc-value", o.status || "-"));
+      sRow.appendChild(sTag);
+      sRow.appendChild(sCard);
+      wrap.appendChild(sRow);
+
+      // My Orders
+      wrap.appendChild(makeEl("div", "section-title", "My Orders"));
+      const iCard = makeEl("div", "white-card");
+      iCard.appendChild(makeEl("div", "items-label", "สินค้า"));
+      const lines = String(o.items || "")
+        .split(/\r?\n/)
+        .map(s => s.trim())
+        .filter(Boolean);
+      if (lines.length > 0) {
+        const ul = makeEl("ul", "items-list");
+        lines.forEach(line => ul.appendChild(makeEl("li", "", line)));
+        iCard.appendChild(ul);
+      } else {
+        iCard.appendChild(makeEl("div", "items-list", "-"));
+      }
+      wrap.appendChild(iCard);
+
+      // การชำระเงิน
+      wrap.appendChild(makeEl("div", "section-title", "การชำระเงิน"));
+      wrap.appendChild(renderPayment(o.payment || {}));
+
+      // Tracking
+      const t = o.tracking || {};
+      const tRow = makeEl("div", "row");
+      tRow.style.marginTop = "14px";
+      const tTag = makeEl("div", "tag");
+      tTag.appendChild(makeEl("span", "", "Tracking"));
+      const tCard = makeEl("div", "white-card");
+      if (t.carrier || t.shipDate || t.trackingNo) {
+        tCard.appendChild(makeEl("div", "track-carrier", t.carrier || "-"));
+        tCard.appendChild(makeEl("div", "track-line", "Shipping Date: " + (t.shipDate || "-")));
+        tCard.appendChild(makeEl("div", "track-line", "Tracking No: " + (t.trackingNo || "-")));
+      } else {
+        tCard.appendChild(makeEl("div", "track-carrier", "ยังไม่มีข้อมูลการจัดส่ง"));
+      }
+      tRow.appendChild(tTag);
+      tRow.appendChild(tCard);
+      wrap.appendChild(tRow);
+
+      return wrap;
+    }
+
+    // ===== สลับหน้าจอ =====
+
+    function showResults(phone, orders) {
+      card.classList.add("searched");
+      phoneLine.textContent = phone;
+      phoneLine.hidden = false;
+      searchForm.hidden = true;
+      notFound.hidden = true;
+
+      results.innerHTML = "";
+      orders.forEach(o => results.appendChild(renderRound(o)));
+
+      results.appendChild(makeEl(
+        "div",
+        "footnote",
+        "หากเลขพัสดุยังไม่ขึ้นในระบบขนส่ง รบกวนรอเช็คอีกครั้งในวันถัดไป เวลา 17:00 น. เนื่องจากระบบอาจจะอัปเดตช้าค่ะ"
+      ));
+
+      const resetWrap = makeEl("div", "reset-wrap");
+      const resetBtn = makeEl("button", "clear", "Clear");
+      resetBtn.addEventListener("click", clearAll);
+      resetWrap.appendChild(resetBtn);
+      results.appendChild(resetWrap);
+    }
+
+    function showNotFound(phone) {
+      card.classList.add("searched");
+      phoneLine.textContent = phone;
+      phoneLine.hidden = false;
+      searchForm.hidden = false;
+      notFound.hidden = false;
+      results.innerHTML = "";
+    }
+
+    function clearAll() {
+      phoneInput.value = "";
+      phoneLine.hidden = true;
+      phoneLine.textContent = "";
+      notFound.hidden = true;
+      results.innerHTML = "";
+      searchForm.hidden = false;
+      card.classList.remove("searched");
+      setStatus("");
+    }
+
+    // ===== ค้นหา =====
+
+    async function searchOrder() {
+      if (busy || !idToken) return;
+
+      const phone = phoneInput.value.trim();
+      const digits = phone.replace(/\D/g, "");
+
+      if (digits.length < 9) {
+        setStatus("❗ กรุณากรอกเบอร์โทรให้ถูกต้อง");
+        return;
+      }
+
+      busy = true;
+      searchBtn.disabled = true;
+      setStatus("กำลังค้นหา...");
+
+      try {
+        const data = await callApi({ action: "searchOrder", idToken: idToken, phone: phone });
+        setStatus("");
+
+        if (data && data.found) {
+          showResults(phone, data.orders);
+        } else {
+          showNotFound(phone);
+        }
+      } catch (error) {
+        setStatus("❌ ค้นหาไม่สำเร็จ: " + (error && error.message ? error.message : error));
+      }
+
+      busy = false;
+      searchBtn.disabled = false;
+    }
+
+    searchBtn.addEventListener("click", searchOrder);
+    document.getElementById("clearBtn").addEventListener("click", clearAll);
+    phoneInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") searchOrder();
+    });
+
+    // ===== เชื่อมต่อ LINE =====
+
+    async function startLine() {
+      searchBtn.disabled = true;
+      setStatus("กำลังเชื่อมต่อ LINE...");
+
+      try {
+        if (typeof liff === "undefined") {
+          throw new Error("โหลด LINE SDK ไม่สำเร็จ กรุณารีเฟรชหน้าเว็บ");
+        }
+
+        if (API_URL.indexOf("ใส่_") === 0) {
+          throw new Error("ยังไม่ได้ใส่ API_URL ของ GAS");
+        }
+
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          setStatus("กำลังเข้าสู่ระบบ LINE...");
+          liff.login();
+          return;
+        }
+
+        idToken = liff.getIDToken();
+        if (!idToken) {
+          throw new Error("ไม่พบ ID Token กรุณาตรวจสอบว่า LIFF เปิด Scope openid แล้ว");
+        }
+
+        setStatus("");
+        searchBtn.disabled = false;
+
+      } catch (error) {
+        console.error("LIFF error:", error);
+        setStatus("เชื่อมต่อไม่สำเร็จ: " + (error && error.message ? error.message : error));
+      }
+    }
+
+    startLine();
+  </script>
+</body>
+</html>
+</html>
