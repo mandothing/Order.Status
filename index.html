@@ -32,24 +32,26 @@
 
     /* การ์ดหลัก: หัวสีดำ + ส่วนเนื้อหาสีน้ำเงินเข้มซ้อนด้านล่าง */
     .card {
-      width: 100%;
-      max-width: 380px;
-      margin: 0 auto;
+      width: calc(100% - 32px);
+      max-width: 400px;
+      margin: calc(28px + env(safe-area-inset-top, 0px)) auto calc(28px + env(safe-area-inset-bottom, 0px));
       background: var(--black);
-      border-radius: 32px;
+      border-radius: 34px;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
-
+ 
+    /* ---------- Header (ขนาดเท่าโค้ดอ้างอิง) ---------- */
     .header {
-      min-height: 300px;
+      color: #fff;
+      text-align: center;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
-      align-items: center;
-      text-align: center;
-      color: #fff;
-      padding: 26px 20px;
-      transition: min-height 0.3s ease;
+      padding: 28px 20px 52px;
+      transition: min-height .35s ease, padding .35s ease;
+      min-height: 65vh;
     }
 
     /* หลังค้นหาแล้ว หัวจะหดลง */
