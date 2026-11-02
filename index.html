@@ -6,7 +6,7 @@
   <title>MANdoTHING | Order Status</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@100..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- LINE LIFF SDK (ใช้เมื่อใส่ LIFF_ID ด้านล่าง) -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
@@ -22,7 +22,7 @@
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
     body {
-      font-family: "Noto Sans Thai", sans-serif;
+      font-family: "Prompt", "Noto Sans Thai", sans-serif;
       background: #fff;
       color: var(--ink);
       min-height: 100vh;
@@ -376,23 +376,29 @@
       $("phoneLabel").innerHTML = `<p class="phone-label">${esc(phone)}</p>`;
 
       try {
-        const res = await fetch(`${API_URL}?action=search&phone=${encodeURIComponent(phone)}`);
+        // ใช้ text/plain เพื่อไม่ให้เบราว์เซอร์ส่ง preflight (Apps Script ไม่รองรับ OPTIONS)
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "search", phone: phone })
+        });
         const text = await res.text();
-        let data;
+        let json;
         try {
-          data = JSON.parse(text);
+          json = JSON.parse(text);
         } catch (parseErr) {
           console.error("API did not return JSON:", text.slice(0, 300));
           throw parseErr;
         }
         loading.hidden = true;
 
-        if (data.status === "error") {
-          console.error("Apps Script error:", data.message);
+        if (!json.ok) {
+          console.error("Apps Script error:", json.error);
           showMessage("Server error. Please try again.");
           return;
         }
 
+        const data = json.data || {};
         if (data.status !== "success" || !data.orders || data.orders.length === 0) {
           showNotFound();
           return;
