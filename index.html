@@ -457,23 +457,25 @@
       wrap.appendChild(makeEl("div", "section-title", "การชำระเงิน"));
       wrap.appendChild(renderPayment(o.payment || {}));
 
-      // Tracking
+      // Tracking: แสดงกล่องนี้เฉพาะเมื่อมีเลขพัสดุ
       const t = o.tracking || {};
-      const tRow = makeEl("div", "row");
-      tRow.style.marginTop = "14px";
-      const tTag = makeEl("div", "tag");
-      tTag.appendChild(makeEl("span", "", "Tracking"));
-      const tCard = makeEl("div", "white-card");
-      if (t.carrier || t.shipDate || t.trackingNo) {
+
+      if (t.trackingNo) {
+        const tRow = makeEl("div", "row");
+        tRow.style.marginTop = "14px";
+
+        const tTag = makeEl("div", "tag");
+        tTag.appendChild(makeEl("span", "", "Tracking"));
+
+        const tCard = makeEl("div", "white-card center");
         tCard.appendChild(makeEl("div", "track-carrier", t.carrier || "-"));
         tCard.appendChild(makeEl("div", "track-line", "Shipping Date: " + (t.shipDate || "-")));
-        tCard.appendChild(makeEl("div", "track-line", "Tracking No: " + (t.trackingNo || "-")));
-      } else {
-        tCard.appendChild(makeEl("div", "track-carrier", "ยังไม่มีข้อมูลการจัดส่ง"));
+        tCard.appendChild(makeEl("div", "track-line", "Tracking No: " + t.trackingNo));
+
+        tRow.appendChild(tTag);
+        tRow.appendChild(tCard);
+        wrap.appendChild(tRow);
       }
-      tRow.appendChild(tTag);
-      tRow.appendChild(tCard);
-      wrap.appendChild(tRow);
 
       return wrap;
     }
@@ -532,7 +534,7 @@
       const digits = phone.replace(/\D/g, "");
 
       if (digits.length < 9) {
-        setStatus("❗ กรุณากรอกเบอร์โทรให้ถูกต้อง");
+        setStatus("กรุณากรอกเบอร์โทรให้ถูกต้อง");
         return;
       }
 
