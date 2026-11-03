@@ -492,11 +492,15 @@
       results.innerHTML = "";
       orders.forEach(o => results.appendChild(renderRound(o)));
 
-      results.appendChild(makeEl(
-        "div",
-        "footnote",
-        "หากเลขพัสดุยังไม่ขึ้นในระบบขนส่ง รบกวนรอเช็คอีกครั้งในวันถัดไป เวลา 17:00 น. เนื่องจากระบบอาจจะอัปเดตช้าค่ะ"
-      ));
+      // แสดงข้อความนี้เฉพาะเมื่อมีกล่อง Tracking (มีเลขพัสดุอย่างน้อย 1 รอบ)
+      const hasTracking = orders.some(o => o.tracking && o.tracking.trackingNo);
+      if (hasTracking) {
+        results.appendChild(makeEl(
+          "div",
+          "footnote",
+          "หากเลขพัสดุยังไม่ขึ้นในระบบขนส่ง รบกวนรอเช็คอีกครั้งในวันถัดไป เวลา 17:00 น. เนื่องจากระบบอาจจะอัปเดตช้าค่ะ"
+        ));
+      }
 
       const resetWrap = makeEl("div", "reset-wrap");
       const resetBtn = makeEl("button", "clear", "Clear");
